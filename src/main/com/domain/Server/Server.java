@@ -17,6 +17,7 @@ import java.util.Map;
 import main.com.domain.Handlers.GetHandler;
 import main.com.domain.Handlers.PostHandler;
 import main.com.domain.Handlers.DeleteHandler;
+import main.com.domain.Handlers.PutHandler;
 
 public class Server {
     private HttpServer server;
@@ -80,9 +81,14 @@ public class Server {
                     switch (path) {
                         case "/villas":
                             // Misal: Update villa
-                            // PutHandler.handleVillas(httpExchange);
+                            PutHandler.handleVillas(httpExchange);
                             sendNotImplementedResponse(httpExchange, "PUT /villas belum diimplementasikan.");
                             break;
+                        case "/customer":
+                            PutHandler.handleCustomers(httpExchange);
+                            break;
+                        case "/voucher":
+                            PutHandler.handleVouchers(httpExchange);
                         default:
                             sendNotFoundResponse(httpExchange, "Endpoint PUT tidak ditemukan.");
                             break;
