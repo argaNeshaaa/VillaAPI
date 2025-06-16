@@ -5,15 +5,23 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+// Import handler untuk GET, POST, DELETE di package berbeda
+import main.com.domain.Handlers.GetHandler;
+import main.com.domain.Handlers.PostHandler;
+import main.com.domain.Handlers.DeleteHandler;
+
 public class Server {
     private HttpServer server;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private class RequestHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) {
             Server.processHttpExchange(httpExchange);
@@ -27,40 +35,125 @@ public class Server {
     }
 
     public static void processHttpExchange(HttpExchange httpExchange) {
-        Request req = new Request(httpExchange);
-        Response res = new Response(httpExchange);
-
+        String method = httpExchange.getRequestMethod();
         URI uri = httpExchange.getRequestURI();
         String path = uri.getPath();
-        System.out.printf("path: %s\n", path);
 
-        // Handle request dan autentikasi dalam block try-catch dibawah. Tapi apa semua harus diletakkan disini?
+        System.out.printf("Received %s request on path: %s\n", method, path);
+
         try {
-            Map<String, Object> reqJsonMap = req.getJSON();
-            System.out.println("first_name => " + reqJsonMap.get("first_name"));
-            System.out.println("email => " + reqJsonMap.get("email"));
-            System.out.println("Done!");
-        } catch(Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-        // Handle response disini jika tidak ada yg menghandle
-        if (!res.isSent()) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> resJsonMap = new HashMap<>();
-            resJsonMap.put("message", "Request Success");
-
-            String resJson = "";
-            try {
-                resJson = objectMapper.writeValueAsString(resJsonMap);
-            } catch(Exception e) {
-                System.out.println(e.getMessage());
+            switch (method) {
+                case "GET":
+                    // Menentukan tujuan berdasarkan PATH untuk metode GET
+                    switch (path) {
+                        case "/villas":
+                            GetHandler.handleVillas(httpExchange);
+                            break;
+                        case "/customer":
+                            GetHandler.handleCustomers(httpExchange);
+                            break;
+                        case "/voucher":
+                            GetHandler.handleVouchers(httpExchange);
+                            break;
+                        default:
+                            sendNotFoundResponse(httpExchange, "Endpoint GET tidak ditemukan.");
+                            break;
+                    }
+                    break;
+                case "POST":
+                    // Menentukan tujuan berdasarkan PATH untuk metode POST
+                    switch (path) {
+                        case "/villas":
+                            PostHandler.handleVillas(httpExchange);
+                            break;
+                        case "/customer":
+                            PostHandler.handleCustomers(httpExchange);
+                            break;
+                        // Tambahkan case untuk /voucher jika ada POST untuk voucher
+                        default:
+                            sendNotFoundResponse(httpExchange, "Endpoint POST tidak ditemukan.");
+                            break;
+                    }
+                    break;
+                case "PUT": // Contoh untuk PUT request
+                    // Menentukan tujuan berdasarkan PATH untuk metode PUT
+                    switch (path) {
+                        case "/villas":
+                            // Misal: Update villa
+                            // PutHandler.handleVillas(httpExchange);
+                            sendNotImplementedResponse(httpExchange, "PUT /villas belum diimplementasikan.");
+                            break;
+                        default:
+                            sendNotFoundResponse(httpExchange, "Endpoint PUT tidak ditemukan.");
+                            break;
+                    }
+                    break;
+                case "DELETE":
+                    // Menentukan tujuan berdasarkan PATH untuk metode DELETE
+                    switch (path) {
+                        case "/villas":
+                            DeleteHandler.handleVillas(httpExchange);
+                            break;
+                        case "/customer":
+                            DeleteHandler.handleCustomers(httpExchange); // Asumsi ada handler untuk ini
+                            break;
+                        default:
+                            sendNotFoundResponse(httpExchange, "Endpoint DELETE tidak ditemukan.");
+                            break;
+                    }
+                    break;
+                default:
+                    // Method tidak didukung
+                    sendMethodNotAllowedResponse(httpExchange, "Method Not Allowed");
+                    break;
             }
-            res.setBody(resJson);
-            res.send(HttpURLConnection.HTTP_OK);
-            return;
+        } catch (Exception e) {
+            // Tangani error umum
+            System.out.println("Error processing request: " + e.getMessage());
+            try {
+                String resError = "{\"message\":\"Internal Server Error\"}";
+                httpExchange.getResponseHeaders().add("Content-Type", "application/json");
+                httpExchange.sendResponseHeaders(HttpURLConnection.HTTP_INTERNAL_ERROR, resError.length());
+                httpExchange.getResponseBody().write(resError.getBytes());
+                httpExchange.getResponseBody().close();
+            } catch (Exception ex) {
+                System.out.println("Error sending error response: " + ex.getMessage());
+            }
         }
+    }
+    private static void sendResponse(HttpExchange httpExchange, int statusCode, String contentType, String responseBody) throws IOException {
+        httpExchange.getResponseHeaders().add("Content-Type", contentType);
+        byte[] responseBytes = responseBody.getBytes("UTF-8");
+        httpExchange.sendResponseHeaders(statusCode, responseBytes.length);
+        OutputStream os = httpExchange.getResponseBody();
+        os.write(responseBytes);
+        os.close();
+    }
 
-        httpExchange.close();
+    private static void sendJsonResponse(HttpExchange httpExchange, int statusCode, Map<String, String> responseMap) throws IOException {
+        String jsonResponse = OBJECT_MAPPER.writeValueAsString(responseMap);
+        sendResponse(httpExchange, statusCode, "application/json", jsonResponse);
+    }
+
+    private static void sendNotFoundResponse(HttpExchange httpExchange, String message) throws IOException {
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "error");
+        responseMap.put("message", message);
+        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, responseMap);
+    }
+
+    private static void sendMethodNotAllowedResponse(HttpExchange httpExchange, String message) throws IOException {
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "error");
+        responseMap.put("message", message);
+        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_METHOD, responseMap);
+    }
+
+    private static void sendNotImplementedResponse(HttpExchange httpExchange, String message) throws IOException {
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "error");
+        responseMap.put("message", message);
+        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_IMPLEMENTED, responseMap);
     }
 }
+
