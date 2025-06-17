@@ -89,6 +89,7 @@ public class Server {
                             break;
                         case "/voucher":
                             PutHandler.handleVouchers(httpExchange);
+                            break;
                         default:
                             sendNotFoundResponse(httpExchange, "Endpoint PUT tidak ditemukan.");
                             break;
