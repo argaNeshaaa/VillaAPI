@@ -4,6 +4,7 @@ package main.com.domain.Handlers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import main.com.domain.Models.Villa;
+import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Customer;
 import main.com.domain.Models.Voucher;
 
@@ -36,12 +37,14 @@ public class GetHandler {
     // Handler untuk GET /villas
     public static void handleVillas(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani GET request untuk /villas");
-        // Logika untuk mengambil daftar villa
-        List<Villa> villas = Arrays.asList(
-            new Villa("V001", "Villa Bunga", 3),
-            new Villa("V002", "Villa Angin", 4)
-        );
-        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, villas);
+
+        try {
+            List<Villa> villas = DatabaseHelper.getAllVillas();
+            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, villas);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal mengambil data villa.");
+        }
     }
 
     // Handler untuk GET /customer
@@ -65,4 +68,19 @@ public class GetHandler {
         );
         sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, vouchers);
     }
+
+    private static void sendErrorJsonResponse(HttpExchange httpExchange, int statusCode, String message) throws IOException {
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "error");
+        responseMap.put("message", message);
+        String jsonResponse = OBJECT_MAPPER.writeValueAsString(responseMap);
+
+        httpExchange.getResponseHeaders().add("Content-Type", "application/json");
+        byte[] responseBytes = jsonResponse.getBytes("UTF-8");
+        httpExchange.sendResponseHeaders(statusCode, responseBytes.length);
+        OutputStream os = httpExchange.getResponseBody();
+        os.write(responseBytes);
+        os.close();
+    }
+
 }

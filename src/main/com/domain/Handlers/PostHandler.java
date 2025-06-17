@@ -4,6 +4,7 @@ package main.com.domain.Handlers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import main.com.domain.Models.Villa;
+import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Customer;
 
 import java.io.BufferedReader;
@@ -64,15 +65,23 @@ public class PostHandler {
     // Handler untuk POST /villas
     public static void handleVillas(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani POST request untuk /villas");
+
         String requestBody = getRequestBody(httpExchange);
         try {
             Villa newVilla = OBJECT_MAPPER.readValue(requestBody, Villa.class);
-            // Logika untuk menyimpan villa baru ke database atau daftar
-            System.out.println("Villa baru diterima: " + newVilla.getNama());
-            // Berikan ID baru jika perlu, atau kembalikan objek yang disimpan
+
+            // Validasi input
+            if (newVilla.getName() == null || newVilla.getDescription() == null || newVilla.getAddress() == null) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Field tidak boleh kosong.");
+                return;
+            }
+
+            int insertedId = DatabaseHelper.insertVilla(newVilla);
+            newVilla.setId(insertedId);
             sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, newVilla);
         } catch (Exception e) {
-            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid untuk Villa.");
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menyimpan villa.");
         }
     }
 

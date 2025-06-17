@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import main.com.domain.Models.Villa;
 import main.com.domain.Models.Voucher;
+import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Customer;
 
 import java.io.BufferedReader;
@@ -65,20 +66,25 @@ public class PutHandler {
     // Asumsi: body request berisi data Villa yang diperbarui
     public static void handleVillas(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani PUT request untuk /villas");
+
         String requestBody = getRequestBody(httpExchange);
         try {
-            // Deserialisasi JSON ke objek Villa
             Villa updatedVilla = OBJECT_MAPPER.readValue(requestBody, Villa.class);
-            
-            // Logika untuk memperbarui data villa di "database" atau daftar.
-            // Biasanya, Anda akan mencari villa berdasarkan ID (yang mungkin ada di updatedVilla
-            // atau dari query/path parameter jika ada), lalu memperbaruinya.
-            System.out.println("Data villa diterima untuk diperbarui: ID " + updatedVilla.getId() + ", Nama: " + updatedVilla.getNama());
 
-            // Kirim kembali objek villa yang telah diperbarui atau konfirmasi
-            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedVilla);
+            if (updatedVilla.getId() == 0 || updatedVilla.getName() == null || updatedVilla.getDescription() == null || updatedVilla.getAddress() == null) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Data tidak lengkap.");
+                return;
+            }
+
+            boolean success = DatabaseHelper.updateVilla(updatedVilla);
+            if (success) {
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedVilla);
+            } else {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Villa tidak ditemukan.");
+            }
         } catch (Exception e) {
-            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid atau data Villa bermasalah.");
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal memperbarui villa.");
         }
     }
 
