@@ -45,75 +45,66 @@ public class Server {
         try {
             switch (method) {
                 case "GET":
-                    // Menentukan tujuan berdasarkan PATH untuk metode GET
-                    switch (path) {
-                        case "/villas":
-                            GetHandler.handleVillas(httpExchange);
-                            break;
-                        case "/customer":
-                            GetHandler.handleCustomers(httpExchange);
-                            break;
-                        case "/voucher":
-                            GetHandler.handleVouchers(httpExchange);
-                            break;
-                        default:
-                            sendNotFoundResponse(httpExchange, "Endpoint GET tidak ditemukan.");
-                            break;
+                    if (path.matches("/villas/\\d+")) {
+                        GetHandler.handleVillaByPath(httpExchange); // GET /villas/{id}
+                    } else if (path.equals("/villas")) {
+                        GetHandler.handleVillas(httpExchange);      // GET /villas
+                    } else if (path.matches("/villas/\\d+/bookings")) {
+                        GetHandler.handleBookingsByVillaId(httpExchange);
+                    } else if (path.equals("/customer")) {
+                        GetHandler.handleCustomers(httpExchange);
+                    } else if (path.equals("/voucher")) {
+                        GetHandler.handleVouchers(httpExchange);
+                    } else if (path.matches("/villas/\\d+/rooms")) {
+                            GetHandler.handleRoomsByVillaId(httpExchange);
+                    } else {
+                        sendNotFoundResponse(httpExchange, "Endpoint GET tidak ditemukan.");
                     }
                     break;
+
                 case "POST":
-                    // Menentukan tujuan berdasarkan PATH untuk metode POST
-                    switch (path) {
-                        case "/villas":
-                            PostHandler.handleVillas(httpExchange);
-                            break;
-                        case "/customer":
-                            PostHandler.handleCustomers(httpExchange);
-                            break;
-                        // Tambahkan case untuk /voucher jika ada POST untuk voucher
-                        default:
-                            sendNotFoundResponse(httpExchange, "Endpoint POST tidak ditemukan.");
-                            break;
+                    if (path.equals("/villas")) {
+                        PostHandler.handleVillas(httpExchange);
+                    } else if (path.matches("/villas/\\d+/rooms")) {
+                        PostHandler.handlePostRoomByVillaId(httpExchange);
+                    } else if (path.equals("/customer")) {
+                        PostHandler.handleCustomers(httpExchange);
+                    } else {
+                        sendNotFoundResponse(httpExchange, "Endpoint POST tidak ditemukan.");
                     }
                     break;
-                case "PUT": // Contoh untuk PUT request
-                    // Menentukan tujuan berdasarkan PATH untuk metode PUT
-                    switch (path) {
-                        case "/villas":
-                            // Misal: Update villa
-                            PutHandler.handleVillas(httpExchange);
-                            sendNotImplementedResponse(httpExchange, "PUT /villas belum diimplementasikan.");
-                            break;
-                        case "/customer":
-                            PutHandler.handleCustomers(httpExchange);
-                            break;
-                        case "/voucher":
-                            PutHandler.handleVouchers(httpExchange);
-                            break;
-                        default:
-                            sendNotFoundResponse(httpExchange, "Endpoint PUT tidak ditemukan.");
-                            break;
+
+                case "PUT":
+                    if (path.matches("/villas/\\d+")) {
+                        PutHandler.handleVillaById(httpExchange); 
+                    } else if (path.matches("/villas/\\d+/rooms/\\d+")) {
+                        PutHandler.handleUpdateRoom(httpExchange);
+                    } else if (path.equals("/customer")) {
+                        PutHandler.handleCustomers(httpExchange);
+                    } else if (path.equals("/voucher")) {
+                        PutHandler.handleVouchers(httpExchange);
+                    } else {
+                        sendNotFoundResponse(httpExchange, "Endpoint PUT tidak ditemukan.");
                     }
                     break;
+
                 case "DELETE":
-                    // Menentukan tujuan berdasarkan PATH untuk metode DELETE
-                    switch (path) {
-                        case "/villas":
-                            DeleteHandler.handleVillas(httpExchange);
-                            break;
-                        case "/customer":
-                            DeleteHandler.handleCustomers(httpExchange); // Asumsi ada handler untuk ini
-                            break;
-                        default:
-                            sendNotFoundResponse(httpExchange, "Endpoint DELETE tidak ditemukan.");
-                            break;
+                    if (path.matches("/villas/\\d+")) {
+                        DeleteHandler.handleVillaByPath(httpExchange); // DELETE /villas/{id}
+                    } else if (path.matches("/villas/\\d+/rooms/\\d+")) {
+                        DeleteHandler.handleDeleteRoomById(httpExchange);  
+                    }else if (path.equals("/customer")) {
+                        DeleteHandler.handleCustomers(httpExchange);
+                    } else {
+                        sendNotFoundResponse(httpExchange, "Endpoint DELETE tidak ditemukan.");
                     }
                     break;
+
                 default:
-                    // Method tidak didukung
                     sendMethodNotAllowedResponse(httpExchange, "Method Not Allowed");
                     break;
             }
+
         } catch (Exception e) {
             // Tangani error umum
             System.out.println("Error processing request: " + e.getMessage());
