@@ -170,6 +170,27 @@ public class GetHandler {
         sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, vouchers);
     }
 
+    // Handler untuk Pencarian ketersediaan vila berdasarkan tanggal check-in dan checkout
+    public static void handleVillaAvailability(HttpExchange httpExchange) throws IOException {
+        Map<String, String> queryParams = parseQuery(httpExchange.getRequestURI().getQuery());
+        String checkinDate = queryParams.get("ci_date");
+        String checkoutDate = queryParams.get("co_date");
+
+        if (checkinDate == null || checkoutDate == null) {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Tanggal checkin dan checkout harus disediakan.");
+            return;
+        }
+
+        try {
+            List<Villa> availableVillas = DatabaseHelper.getAvailableVillas(checkinDate, checkoutDate);
+            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, availableVillas);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan saat mengambil data.");
+        }
+    }
+
+
     private static void sendErrorJsonResponse(HttpExchange httpExchange, int statusCode, String message) throws IOException {
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("status", "error");

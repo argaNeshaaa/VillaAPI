@@ -48,7 +48,12 @@ public class Server {
                     if (path.matches("/villas/\\d+")) {
                         GetHandler.handleVillaByPath(httpExchange); // GET /villas/{id}
                     } else if (path.equals("/villas")) {
-                        GetHandler.handleVillas(httpExchange);      // GET /villas
+                        String query = httpExchange.getRequestURI().getQuery();
+                        if (query != null && query.contains("ci_date") && query.contains("co_date")) {
+                            GetHandler.handleVillaAvailability(httpExchange); // ← tangani dengan filter tanggal
+                        } else {
+                            GetHandler.handleVillas(httpExchange); // ← default
+                        }
                     } else if (path.matches("/villas/\\d+/bookings")) {
                         GetHandler.handleBookingsByVillaId(httpExchange);
                     } else if (path.matches("/villas/\\d+/reviews")) {

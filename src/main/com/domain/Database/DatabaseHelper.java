@@ -298,6 +298,35 @@ public class DatabaseHelper {
         return reviews;
     }
 
+    // GET /villas?ci_date={checkin_date}&co_date={checkout_date}
+    public static List<Villa> getAvailableVillas(String checkinDate, String checkoutDate) {
+        List<Villa> villas = new ArrayList<>();
+        String sql = "SELECT DISTINCT v.* FROM villas v " +
+                    "JOIN room_types r ON v.id = r.villa " +
+                    "WHERE r.id NOT IN ( " +
+                    "  SELECT b.room_type FROM bookings b " +
+                    "  WHERE NOT (b.checkout_date <= ? OR b.checkin_date >= ?) " +
+                    ")";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, checkinDate);
+            pstmt.setString(2, checkoutDate);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Villa villa = new Villa();
+                villa.setId(rs.getInt("id"));
+                villa.setName(rs.getString("name"));
+                villa.setDescription(rs.getString("description"));
+                villa.setAddress(rs.getString("address"));
+                villas.add(villa);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return villas;
+    }
 
 
     private static Connection connect() throws SQLException {
