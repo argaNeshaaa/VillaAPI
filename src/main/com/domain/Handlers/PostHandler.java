@@ -6,6 +6,8 @@ import com.sun.net.httpserver.HttpExchange;
 import main.com.domain.Models.Villa;
 import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Customer;
+import main.com.domain.Models.RoomType;
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -84,6 +86,37 @@ public class PostHandler {
             sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menyimpan villa.");
         }
     }
+
+    // Handler untuk POST /villas/{id}/rooms
+    public static void handlePostRoomByVillaId(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani POST /villas/{id}/rooms");
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+
+        if (parts.length == 4 && parts[1].equals("villas") && parts[3].equals("rooms")) {
+            try {
+                int villaId = Integer.parseInt(parts[2]);
+                String body = getRequestBody(httpExchange);
+
+                RoomType room = OBJECT_MAPPER.readValue(body, RoomType.class);
+                room.setVilla(villaId); // pakai villa ID dari path, abaikan kalau di body
+
+                int newId = DatabaseHelper.insertRoomType(room);
+                if (newId != -1) {
+                    room.setId(newId);
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, room);
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menyimpan tipe kamar.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Data kamar tidak valid.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Path tidak sesuai.");
+        }
+    }
+
 
     // Handler untuk POST /customer
     public static void handleCustomers(HttpExchange httpExchange) throws IOException {
