@@ -4,6 +4,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import main.com.domain.Models.Booking;
+import main.com.domain.Models.Review;
 import main.com.domain.Models.RoomType;
 import main.com.domain.Models.Villa;
 
@@ -236,7 +237,7 @@ public class DatabaseHelper {
                     "WHERE r.villa = ?";
         List<Booking> bookings = new ArrayList<>();
 
-        try (Connection conn = connect();
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:villa_booking.db");
             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, villaId);
@@ -245,16 +246,16 @@ public class DatabaseHelper {
             while (rs.next()) {
                 Booking booking = new Booking();
                 booking.setId(rs.getInt("id"));
-                booking.setCustomerId(rs.getInt("customer"));
-                booking.setRoomTypeId(rs.getInt("room_type"));
-                booking.setCheckinDate(rs.getString("checkin_date"));
-                booking.setCheckoutDate(rs.getString("checkout_date"));
+                booking.setCustomer(rs.getInt("customer"));
+                booking.setRoom_type(rs.getInt("room_type"));
+                booking.setCheckin_date(rs.getString("checkin_date"));
+                booking.setCheckout_date(rs.getString("checkout_date"));
                 booking.setPrice(rs.getInt("price"));
-                booking.setVoucherId(rs.getInt("voucher"));
-                booking.setFinalPrice(rs.getInt("final_price"));
-                booking.setPaymentStatus(rs.getString("payment_status"));
-                booking.setHasCheckedin(rs.getInt("has_checkedin") == 1);
-                booking.setHasCheckedout(rs.getInt("has_checkedout") == 1);
+                booking.setVoucher(rs.getInt("voucher"));
+                booking.setFinal_price(rs.getInt("final_price"));
+                booking.setPayment_status(rs.getString("payment_status"));
+                booking.setHas_checkedin(rs.getInt("has_checkedin") == 1);
+                booking.setHas_checkedout(rs.getInt("has_checkedout") == 1);
                 bookings.add(booking);
             }
         } catch (SQLException e) {
@@ -263,6 +264,40 @@ public class DatabaseHelper {
 
         return bookings;
     }
+
+    // GET /villas/{id}/reviews
+    public static List<Review> getReviewsByVillaId(int villaId) {
+        List<Review> reviews = new ArrayList<>();
+        String sql = """
+            SELECT r.booking, r.star, r.title, r.content
+            FROM reviews r
+            JOIN bookings b ON r.booking = b.id
+            JOIN room_types rt ON b.room_type = rt.id
+            WHERE rt.villa = ?
+        """;
+
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:villa_booking.db");
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, villaId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Review review = new Review();
+                review.setBooking(rs.getInt("booking"));
+                review.setStar(rs.getInt("star"));
+                review.setTitle(rs.getString("title"));
+                review.setContent(rs.getString("content"));
+                reviews.add(review);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return reviews;
+    }
+
 
 
     private static Connection connect() throws SQLException {

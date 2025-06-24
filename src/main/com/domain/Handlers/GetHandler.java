@@ -7,12 +7,19 @@ import main.com.domain.Models.Villa;
 import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Booking;
 import main.com.domain.Models.Customer;
+import main.com.domain.Models.Review;
 import main.com.domain.Models.RoomType;
 import main.com.domain.Models.Voucher;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -107,12 +114,36 @@ public class GetHandler {
             try {
                 int villaId = Integer.parseInt(parts[2]);
                 List<Booking> bookings = DatabaseHelper.getBookingsByVillaId(villaId);
-                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, bookings);
+                if (bookings.isEmpty()) {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Booking tidak ditemukan.");
+                } else {
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, bookings);
+                }
             } catch (NumberFormatException e) {
                 sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan server.");
             }
         } else {
-            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL tidak sesuai.");
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL tidak sesuai. Gunakan /villas/{id}/bookings");
+        }
+    }
+
+    // Handler untuk GET /villas/{id}/reviews 
+    public static void handleReviewsByVillaId(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath(); // contoh: /villas/5/reviews
+        String[] parts = path.split("/");
+        if (parts.length >= 3) {
+            try {
+                int villaId = Integer.parseInt(parts[2]);
+                List<Review> reviews = DatabaseHelper.getReviewsByVillaId(villaId);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, reviews);
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID tidak valid.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format path salah.");
         }
     }
 

@@ -51,6 +51,8 @@ public class Server {
                         GetHandler.handleVillas(httpExchange);      // GET /villas
                     } else if (path.matches("/villas/\\d+/bookings")) {
                         GetHandler.handleBookingsByVillaId(httpExchange);
+                    } else if (path.matches("/villas/\\d+/reviews")) {
+                        GetHandler.handleReviewsByVillaId(httpExchange);
                     } else if (path.equals("/customer")) {
                         GetHandler.handleCustomers(httpExchange);
                     } else if (path.equals("/voucher")) {
