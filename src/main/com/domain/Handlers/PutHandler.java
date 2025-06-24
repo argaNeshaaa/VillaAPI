@@ -7,6 +7,7 @@ import main.com.domain.Models.Villa;
 import main.com.domain.Models.Voucher;
 import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Customer;
+import main.com.domain.Models.RoomType;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -62,31 +63,79 @@ public class PutHandler {
         os.close();
     }
 
-    // Handler untuk PUT /villas
+    // Handler untuk PUT /villas/{id}
     // Asumsi: body request berisi data Villa yang diperbarui
-    public static void handleVillas(HttpExchange httpExchange) throws IOException {
-        System.out.println("Menangani PUT request untuk /villas");
+    public static void handleVillaById(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani PUT /villas/{id}");
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
 
-        String requestBody = getRequestBody(httpExchange);
-        try {
-            Villa updatedVilla = OBJECT_MAPPER.readValue(requestBody, Villa.class);
+        if (parts.length == 3 && parts[1].equals("villas")) {
+            try {
+                int id = Integer.parseInt(parts[2]);
 
-            if (updatedVilla.getId() == 0 || updatedVilla.getName() == null || updatedVilla.getDescription() == null || updatedVilla.getAddress() == null) {
-                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Data tidak lengkap.");
-                return;
+                String requestBody = getRequestBody(httpExchange);
+                Villa updatedVilla = OBJECT_MAPPER.readValue(requestBody, Villa.class);
+
+                // Gunakan ID dari path, bukan dari body
+                updatedVilla.setId(id);
+
+                // Validasi field penting
+                if (updatedVilla.getName() == null || updatedVilla.getDescription() == null || updatedVilla.getAddress() == null) {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Data tidak lengkap.");
+                    return;
+                }
+
+                boolean success = DatabaseHelper.updateVilla(updatedVilla);
+                if (success) {
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedVilla);
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Villa tidak ditemukan.");
+                }
+
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan.");
             }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Path tidak sesuai.");
+        }
+    }
 
-            boolean success = DatabaseHelper.updateVilla(updatedVilla);
+    // Handler untuk PUT /villas/{id}/rooms/{id}
+    public static void handleUpdateRoom(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani PUT request untuk /villas/{villaId}/rooms/{roomId}");
+        String path = httpExchange.getRequestURI().getPath(); // contoh: /villas/1/rooms/2
+        String[] parts = path.split("/");
+
+        if (parts.length != 5) {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Path tidak valid.");
+            return;
+        }
+
+        try {
+            int villaId = Integer.parseInt(parts[2]);
+            int roomId = Integer.parseInt(parts[4]);
+
+            String requestBody = getRequestBody(httpExchange);
+            RoomType updatedRoom = OBJECT_MAPPER.readValue(requestBody, RoomType.class);
+            updatedRoom.setId(roomId); // pastikan ID sesuai path
+            updatedRoom.setVilla(villaId);
+
+            boolean success = DatabaseHelper.updateRoomType(updatedRoom);
             if (success) {
-                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedVilla);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedRoom);
             } else {
-                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Villa tidak ditemukan.");
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Room tidak ditemukan.");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal memperbarui villa.");
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal memperbarui room.");
         }
     }
+
 
     // Handler untuk PUT /customer
     // Asumsi: body request berisi data Customer yang diperbarui
