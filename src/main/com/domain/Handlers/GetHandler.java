@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import main.com.domain.Models.Villa;
 import main.com.domain.Database.DatabaseHelper;
+import main.com.domain.Models.Booking;
 import main.com.domain.Models.Customer;
+import main.com.domain.Models.RoomType;
 import main.com.domain.Models.Voucher;
 
 import java.io.IOException;
@@ -47,6 +49,74 @@ public class GetHandler {
         }
     }
 
+    // Handler untuk GET /villas/{id}
+    public static void handleVillaByPath(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani GET request /villas/{id}");
+
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+        if (parts.length != 3) {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL salah.");
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(parts[2]);
+            Villa villa = DatabaseHelper.getVillaById(id);
+            if (villa != null) {
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, villa);
+            } else {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Villa tidak ditemukan.");
+            }
+        } catch (NumberFormatException e) {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID tidak valid.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan.");
+        }
+    }
+
+    // GET /villas/{id}/rooms
+    public static void handleRoomsByVillaId(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani GET /villas/{id}/rooms");
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+
+        if (parts.length == 4 && parts[1].equals("villas") && parts[3].equals("rooms")) {
+            try {
+                int villaId = Integer.parseInt(parts[2]);
+                List<RoomType> rooms = DatabaseHelper.getRoomsByVillaId(villaId);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, rooms);
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID villa tidak valid.");
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Path tidak sesuai.");
+        }
+    }
+
+    // Handler untuk GET /villas/{id}/bookings
+    public static void handleBookingsByVillaId(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath(); // contoh: /villas/5/bookings
+        String[] parts = path.split("/");
+
+        if (parts.length >= 4) {
+            try {
+                int villaId = Integer.parseInt(parts[2]);
+                List<Booking> bookings = DatabaseHelper.getBookingsByVillaId(villaId);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, bookings);
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL tidak sesuai.");
+        }
+    }
+
+
     // Handler untuk GET /customer
     public static void handleCustomers(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani GET request untuk /customer");
@@ -82,5 +152,6 @@ public class GetHandler {
         os.write(responseBytes);
         os.close();
     }
+
 
 }
