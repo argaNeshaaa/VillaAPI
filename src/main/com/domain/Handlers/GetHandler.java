@@ -190,6 +190,21 @@ public class GetHandler {
         }
     }
 
+    // Helper untuk mem-parse query string
+    private static Map<String, String> parseQuery(String query) {
+        Map<String, String> queryParams = new HashMap<>();
+        if (query == null || query.isEmpty()) return queryParams;
+
+        String[] pairs = query.split("&");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=");
+            if (keyValue.length == 2) {
+                queryParams.put(keyValue[0], keyValue[1]);
+            }
+        }
+        return queryParams;
+    }
+
 
     private static void sendErrorJsonResponse(HttpExchange httpExchange, int statusCode, String message) throws IOException {
         Map<String, String> responseMap = new HashMap<>();
