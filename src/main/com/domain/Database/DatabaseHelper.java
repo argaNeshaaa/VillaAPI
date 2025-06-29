@@ -11,6 +11,11 @@ import main.com.domain.Models.Villa;
 public class DatabaseHelper {
     private static final String DB_URL = "jdbc:sqlite:villa_booking.db";
 
+    private static Connection connect() throws SQLException {
+        return DriverManager.getConnection(DB_URL);
+    }
+
+
     static {
         try {
             Class.forName("org.sqlite.JDBC"); // pastikan driver terdaftar
@@ -299,19 +304,19 @@ public class DatabaseHelper {
     }
 
     // GET /villas?ci_date={checkin_date}&co_date={checkout_date}
-    public static List<Villa> getAvailableVillas(String checkinDate, String checkoutDate) {
-        List<Villa> villas = new ArrayList<>();
-        String sql = "SELECT DISTINCT v.* FROM villas v " +
-                    "JOIN room_types r ON v.id = r.villa " +
-                    "WHERE r.id NOT IN ( " +
-                    "  SELECT b.room_type FROM bookings b " +
-                    "  WHERE NOT (b.checkout_date <= ? OR b.checkin_date >= ?) " +
-                    ")";
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    public static List<Villa> getAvailableVillas(String ciDate, String coDate) {
+        List<Villa> availableVillas = new ArrayList<>();
+        String sql = "SELECT DISTINCT v.* " +
+                    "FROM villas v " +
+                    "LEFT JOIN room_types r ON v.id = r.villa " +
+                    "LEFT JOIN bookings b ON r.id = b.room_type " +
+                    "AND (b.checkin_date < ? AND b.checkout_date > ?) " +
+                    "WHERE b.id IS NULL";
 
-            pstmt.setString(1, checkinDate);
-            pstmt.setString(2, checkoutDate);
+        try (Connection conn = connect();
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, coDate);
+            pstmt.setString(2, ciDate);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -320,16 +325,13 @@ public class DatabaseHelper {
                 villa.setName(rs.getString("name"));
                 villa.setDescription(rs.getString("description"));
                 villa.setAddress(rs.getString("address"));
-                villas.add(villa);
+                availableVillas.add(villa);
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return villas;
-    }
 
-
-    private static Connection connect() throws SQLException {
-        return DriverManager.getConnection(DB_URL);
+        return availableVillas;
     }
 }
