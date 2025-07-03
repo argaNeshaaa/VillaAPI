@@ -58,8 +58,14 @@ public class Server {
                         GetHandler.handleBookingsByVillaId(httpExchange);
                     } else if (path.matches("/villas/\\d+/reviews")) {
                         GetHandler.handleReviewsByVillaId(httpExchange);
-                    } else if (path.equals("/customer")) {
+                    } else if (path.equals("/customers")) {
                         GetHandler.handleCustomers(httpExchange);
+                    } else if (path.matches("/customers/\\d+")) {
+                        GetHandler.handleCustomerById(httpExchange);
+                    } else if (path.matches("/customers/\\d+/bookings")) {
+                        GetHandler.handleBookingsByCustomerId(httpExchange);
+                    } else if (path.matches("/customers/\\d+/reviews")) {
+                        GetHandler.handleReviewsByCustomerId(httpExchange);
                     } else if (path.equals("/voucher")) {
                         GetHandler.handleVouchers(httpExchange);
                     } else if (path.matches("/villas/\\d+/rooms")) {
