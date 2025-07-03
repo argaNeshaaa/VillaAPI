@@ -147,18 +147,6 @@ public class GetHandler {
         }
     }
 
-
-    // Handler untuk GET /customer
-    public static void handleCustomers(HttpExchange httpExchange) throws IOException {
-        System.out.println("Menangani GET request untuk /customer");
-        // Logika untuk mengambil daftar pelanggan
-        List<Customer> customers = Arrays.asList(
-            new Customer("C001", "Andi", "andi@example.com"),
-            new Customer("C002", "Beti", "beti@example.com")
-        );
-        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, customers);
-    }
-
     // Handler untuk GET /voucher
     public static void handleVouchers(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani GET request untuk /voucher");
@@ -189,6 +177,72 @@ public class GetHandler {
             sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan saat mengambil data.");
         }
     }
+
+    // Handler untuk GET /customer
+    public static void handleCustomers(HttpExchange httpExchange) throws IOException {
+        List<Customer> customers = DatabaseHelper.getAllCustomers();
+        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, customers);
+    }
+
+    // Handler untuk customers/{id}
+    public static void handleCustomerById(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath(); // e.g. /customers/3
+        String[] parts = path.split("/");
+
+        if (parts.length >= 3) {
+            try {
+                int id = Integer.parseInt(parts[2]);
+                Customer customer = DatabaseHelper.getCustomerById(id);
+                if (customer != null) {
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, customer);
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Customer tidak ditemukan.");
+                }
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL salah.");
+        }
+    }
+
+    // Handler untuk GET/customers/{id}/bookings
+    public static void handleBookingsByCustomerId(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath(); // /customers/{id}/bookings
+        String[] parts = path.split("/");
+
+        if (parts.length >= 4) {
+            try {
+                int customerId = Integer.parseInt(parts[2]);
+                List<Booking> bookings = DatabaseHelper.getBookingsByCustomerId(customerId);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, bookings);
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL tidak sesuai.");
+        }
+    }
+
+    // Handler untuk GET/customers/{id}/reviews
+    public static void handleReviewsByCustomerId(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath(); // /customers/{id}/reviews
+        String[] parts = path.split("/");
+
+        if (parts.length >= 4) {
+            try {
+                int customerId = Integer.parseInt(parts[2]);
+                List<Review> reviews = DatabaseHelper.getReviewsByCustomerId(customerId);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, reviews);
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL tidak sesuai.");
+        }
+    }
+
+
 
     // Helper untuk mem-parse query string
     private static Map<String, String> parseQuery(String query) {
