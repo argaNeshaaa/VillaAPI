@@ -4,6 +4,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import main.com.domain.Models.Booking;
+import main.com.domain.Models.Customer;
 import main.com.domain.Models.Review;
 import main.com.domain.Models.RoomType;
 import main.com.domain.Models.Villa;
@@ -334,4 +335,117 @@ public class DatabaseHelper {
 
         return availableVillas;
     }
+
+    // GET/Customers
+    public static List<Customer> getAllCustomers() {
+        List<Customer> customers = new ArrayList<>();
+        String sql = "SELECT * FROM customers";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                Customer c = new Customer();
+                c.setId(rs.getInt("id"));
+                c.setName(rs.getString("name"));
+                c.setEmail(rs.getString("email"));
+                c.setPhone(rs.getString("phone"));
+                customers.add(c);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return customers;
+    }
+
+    // GET /customers/{id}
+    public static Customer getCustomerById(int id) {
+        String sql = "SELECT * FROM customers WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                Customer customer = new Customer();
+                customer.setId(rs.getInt("id"));
+                customer.setName(rs.getString("name"));
+                customer.setEmail(rs.getString("email"));
+                customer.setPhone(rs.getString("phone"));
+                return customer;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // GET/customers/{id}/bookings
+    public static List<Booking> getBookingsByCustomerId(int customerId) {
+        List<Booking> bookings = new ArrayList<>();
+        String sql = "SELECT * FROM bookings WHERE customer = ?";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, customerId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Booking booking = new Booking();
+                booking.setId(rs.getInt("id"));
+                booking.setCustomer(rs.getInt("customer"));
+                booking.setRoom_type(rs.getInt("room_type"));
+                booking.setCheckin_date(rs.getString("checkin_date"));
+                booking.setCheckout_date(rs.getString("checkout_date"));
+                booking.setPrice(rs.getInt("price"));
+                booking.setVoucher(rs.getInt("voucher"));
+                booking.setFinal_price(rs.getInt("final_price"));
+                booking.setPayment_status(rs.getString("payment_status"));
+                booking.setHas_checkedin(rs.getInt("has_checkedin") == 1);
+                booking.setHas_checkedout(rs.getInt("has_checkedout") == 1);
+                bookings.add(booking);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return bookings;
+    }
+
+    // GET/customers/{id}/reviews
+    public static List<Review> getReviewsByCustomerId(int customerId) {
+        List<Review> reviews = new ArrayList<>();
+        String sql = """
+            SELECT r.booking, r.star, r.title, r.content
+            FROM reviews r
+            JOIN bookings b ON r.booking = b.id
+            WHERE b.customer = ?
+        """;
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, customerId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Review review = new Review();
+                review.setBooking(rs.getInt("booking"));
+                review.setStar(rs.getInt("star"));
+                review.setTitle(rs.getString("title"));
+                review.setContent(rs.getString("content"));
+                reviews.add(review);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return reviews;
+    }
+
+
 }
