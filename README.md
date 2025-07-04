@@ -23,10 +23,10 @@ Villa Booking API adalah backend aplikasi pemesanan villa yang dibangun mengguna
 
 Akses endpoint dilindungi dan memerlukan **API Key**. API Key dapat dilihat pada Class Main dan juga pada Format Header di bawah, API Key ini harus dikirim melalui **header** HTTP pada Postman sebagai berikut:
 
-### 📥 Format Header
+### 📥 API Key
 
 ```http
-Authorization: Bearer API_KEY_LIVE_prod_v2_xyz123ABCDEF456GHIJKL7890MNOPQRSTUV
+API_KEY_LIVE_prod_v2_xyz123ABCDEF456GHIJKL7890MNOPQRSTUV
 ```
 
 ## 🚀 Cara Menjalankan Proyek
