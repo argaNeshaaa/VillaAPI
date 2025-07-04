@@ -115,5 +115,31 @@ public class DeleteHandler {
         os.write(responseBytes);
         os.close();
     }
+    public static void handleDeleteVoucherById(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani DELETE /vouchers/{code}");
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+
+        if (parts.length == 3 && parts[1].equals("vouchers")) {
+            int id = Integer.parseInt(parts[2]) ;
+
+            try {
+                boolean deleted = DatabaseHelper.deleteVoucherByCode(id);
+                if (deleted) {
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK,
+                            Map.of("message", "Voucher berhasil dihapus."));
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND,
+                            "Voucher tidak ditemukan.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR,
+                        "Terjadi kesalahan saat menghapus voucher.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Path tidak sesuai.");
+        }
+    }
 
 }

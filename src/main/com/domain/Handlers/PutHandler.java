@@ -147,7 +147,7 @@ public class PutHandler {
             Customer updatedCustomer = OBJECT_MAPPER.readValue(requestBody, Customer.class);
             
             // Logika untuk memperbarui data pelanggan di "database" atau daftar.
-            System.out.println("Data pelanggan diterima untuk diperbarui: ID " + updatedCustomer.getId() + ", Nama: " + updatedCustomer.getNama());
+            System.out.println("Data pelanggan diterima untuk diperbarui: ID " + updatedCustomer.getId() + ", Nama: " + updatedCustomer.getName());
 
             // Kirim kembali objek pelanggan yang telah diperbarui atau konfirmasi
             sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedCustomer);
@@ -164,7 +164,7 @@ public class PutHandler {
             Voucher updatedVoucher = OBJECT_MAPPER.readValue(requestBody, Voucher.class);
             
             // Logika untuk memperbarui data pelanggan di "database" atau daftar.
-            System.out.println("Data pelanggan diterima untuk diperbarui: Kode " + updatedVoucher.getKode() + ", Diskon : " + updatedVoucher.getDiskon());
+            System.out.println("Data pelanggan diterima untuk diperbarui: Kode " + updatedVoucher.getCode() + ", Diskon : " + updatedVoucher.getDiscount());
 
             // Kirim kembali objek pelanggan yang telah diperbarui atau konfirmasi
             sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedVoucher);
@@ -172,4 +172,45 @@ public class PutHandler {
             sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid atau data Voucher bermasalah.");
         }
     }
+
+    public static void handleVoucherById(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani PUT /vouchers/{id}");
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+
+        if (parts.length == 3 && parts[1].equals("vouchers")) {
+            try {
+                int id = Integer.parseInt(parts[2]); // Ambil kode dari URL
+
+                String requestBody = getRequestBody(httpExchange);
+                Voucher updatedVoucher = OBJECT_MAPPER.readValue(requestBody, Voucher.class);
+
+                // Gunakan code dari path, bukan dari body
+                updatedVoucher.setId(id);
+
+                // Validasi field penting
+                if (updatedVoucher.getCode() == null ||
+                        updatedVoucher.getDescription() == null ||
+                        updatedVoucher.getStartDate() == null ||
+                        updatedVoucher.getEndDate() == null) {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Data tidak lengkap.");
+                    return;
+                }
+
+                boolean success = DatabaseHelper.updateVoucher(updatedVoucher);
+                if (success) {
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedVoucher);
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Voucher tidak ditemukan.");
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Path tidak sesuai.");
+        }
+    }
+
 }

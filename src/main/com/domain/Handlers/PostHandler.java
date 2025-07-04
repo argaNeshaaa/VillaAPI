@@ -7,6 +7,7 @@ import main.com.domain.Models.Villa;
 import main.com.domain.Database.DatabaseHelper;
 import main.com.domain.Models.Customer;
 import main.com.domain.Models.RoomType;
+import main.com.domain.Models.Voucher;
 
 
 import java.io.BufferedReader;
@@ -125,10 +126,33 @@ public class PostHandler {
         try {
             Customer newCustomer = OBJECT_MAPPER.readValue(requestBody, Customer.class);
             // Logika untuk menyimpan pelanggan baru
-            System.out.println("Pelanggan baru diterima: " + newCustomer.getNama());
+            System.out.println("Pelanggan baru diterima: " + newCustomer.getName());
             sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, newCustomer);
         } catch (Exception e) {
             sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid untuk Customer.");
         }
     }
+    public static void handleVouchers(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani POST request untuk /vouchers");
+
+        String requestBody = getRequestBody(httpExchange);
+        try {
+            Voucher newVoucher = OBJECT_MAPPER.readValue(requestBody, Voucher.class);
+
+            if (newVoucher.getCode() == null || newVoucher.getDescription() == null ||
+                    newVoucher.getStartDate() == null || newVoucher.getEndDate() == null) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Field tidak boleh kosong.");
+                return;
+            }
+
+            int insertedId = DatabaseHelper.insertVoucher(newVoucher);
+
+            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, newVoucher);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menyimpan voucher.");
+        }
+    }
+
 }

@@ -3,11 +3,8 @@ package main.com.domain.Database;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import main.com.domain.Models.Booking;
-import main.com.domain.Models.Customer;
-import main.com.domain.Models.Review;
-import main.com.domain.Models.RoomType;
-import main.com.domain.Models.Villa;
+
+import main.com.domain.Models.*;
 
 public class DatabaseHelper {
     private static final String DB_URL = "jdbc:sqlite:villa_booking.db";
@@ -359,6 +356,27 @@ public class DatabaseHelper {
         return customers;
     }
 
+    public static List<Voucher> getAllVoucher() {
+        List<Voucher> vouchers = new ArrayList<>();
+        String sql = "SELECT * FROM vouchers";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                Voucher voucher = new Voucher();
+                voucher.setCode(rs.getString("code"));
+                voucher.setDiscount(rs.getInt("discount"));
+                vouchers.add(voucher);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return vouchers;
+    }
+
+
     // GET /customers/{id}
     public static Customer getCustomerById(int id) {
         String sql = "SELECT * FROM customers WHERE id = ?";
@@ -447,5 +465,79 @@ public class DatabaseHelper {
         return reviews;
     }
 
+    public static Voucher getVoucherById(int id){
+        String sql = "SELECT * FROM vouchers WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            System.out.println("Enter to voucher");
+            if (rs.next()) {
+                Voucher voucher = new Voucher();
+                voucher.setCode(rs.getString("code"));
+                voucher.setDiscount(rs.getInt("discount"));
+                return voucher;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static int insertVoucher(Voucher voucher) {
+        String sql = "INSERT INTO vouchers (code, description, discount, start_date, end_date) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setString(1, voucher.getCode());
+            pstmt.setString(2, voucher.getDescription());
+            pstmt.setInt(3, voucher.getDiscount());
+            pstmt.setString(4, voucher.getStartDate());
+            pstmt.setString(5, voucher.getEndDate());
+
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1; // Gagal
+    }
+    public static boolean updateVoucher(Voucher voucher) {
+        String sql = "UPDATE vouchers SET description = ?, discount = ?, start_date = ?, end_date = ?, code = ? WHERE id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, voucher.getDescription());
+            pstmt.setInt(2, voucher.getDiscount());
+            pstmt.setString(3, voucher.getStartDate());
+            pstmt.setString(4, voucher.getEndDate());
+            pstmt.setString(5, voucher.getCode());
+            pstmt.setInt(6, voucher.getId());
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public static boolean deleteVoucherByCode(int id) {
+        String sql = "DELETE FROM vouchers WHERE id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
 }

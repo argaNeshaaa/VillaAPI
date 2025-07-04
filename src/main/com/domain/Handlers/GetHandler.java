@@ -148,15 +148,6 @@ public class GetHandler {
     }
 
     // Handler untuk GET /voucher
-    public static void handleVouchers(HttpExchange httpExchange) throws IOException {
-        System.out.println("Menangani GET request untuk /voucher");
-        // Logika untuk mengambil daftar voucher
-        List<Voucher> vouchers = Arrays.asList(
-            new Voucher("DISC20", "20%"),
-            new Voucher("FREESHIP", "Gratis Pengiriman")
-        );
-        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, vouchers);
-    }
 
     // Handler untuk Pencarian ketersediaan vila berdasarkan tanggal check-in dan checkout
     public static void handleVillaAvailability(HttpExchange httpExchange) throws IOException {
@@ -274,5 +265,37 @@ public class GetHandler {
         os.close();
     }
 
+    public static void handleVouchers(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani GET request untuk /vouchers");
+
+        try {
+            List<Voucher> vouchers = DatabaseHelper.getAllVoucher();
+            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, vouchers);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal mengambil data villa.");
+        }
+    }
+
+    public static void handleVouchersById(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+
+        if (parts.length >= 3) {
+            try {
+                int id = Integer.parseInt(parts[2]);
+                Voucher voucher = DatabaseHelper.getVoucherById(id);
+                if (voucher != null) {
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, voucher);
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Voucher tidak ditemukan.");
+                }
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID harus berupa angka.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL salah.");
+        }
+    }
 
 }
