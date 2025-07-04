@@ -365,8 +365,11 @@ public class DatabaseHelper {
 
             while (rs.next()) {
                 Voucher voucher = new Voucher();
+                voucher.setId(rs.getInt("id"));
                 voucher.setCode(rs.getString("code"));
                 voucher.setDiscount(rs.getInt("discount"));
+                voucher.setStartDate(rs.getString("start_date"));
+                voucher.setEndDate(rs.getString("end_date"));
                 vouchers.add(voucher);
             }
         } catch (SQLException e) {
@@ -473,8 +476,11 @@ public class DatabaseHelper {
             System.out.println("Enter to voucher");
             if (rs.next()) {
                 Voucher voucher = new Voucher();
+                voucher.setId(rs.getInt("id"));
                 voucher.setCode(rs.getString("code"));
                 voucher.setDiscount(rs.getInt("discount"));
+                voucher.setStartDate(rs.getString("start_date"));
+                voucher.setEndDate(rs.getString("end_date"));
                 return voucher;
             }
         } catch (SQLException e) {
