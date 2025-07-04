@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import main.com.domain.Models.Villa;
 import main.com.domain.Database.DatabaseHelper;
+import main.com.domain.Models.Booking;
 import main.com.domain.Models.Customer;
+import main.com.domain.Models.Review;
 import main.com.domain.Models.RoomType;
 import main.com.domain.Models.Voucher;
 
@@ -120,16 +122,29 @@ public class PostHandler {
 
 
     // Handler untuk POST /customer
-    public static void handleCustomers(HttpExchange httpExchange) throws IOException {
-        System.out.println("Menangani POST request untuk /customer");
-        String requestBody = getRequestBody(httpExchange);
+    public static void handleCreateCustomer(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani POST /customers");
+
+        String body = getRequestBody(httpExchange);
         try {
-            Customer newCustomer = OBJECT_MAPPER.readValue(requestBody, Customer.class);
-            // Logika untuk menyimpan pelanggan baru
-            System.out.println("Pelanggan baru diterima: " + newCustomer.getName());
-            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, newCustomer);
+            Customer customer = OBJECT_MAPPER.readValue(body, Customer.class);
+
+            if (customer.getName() == null || customer.getEmail() == null) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Nama dan email wajib diisi.");
+                return;
+            }
+
+            int newId = DatabaseHelper.insertCustomer(customer);
+            if (newId > 0) {
+                customer.setId(newId);
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, customer);
+            } else {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menambahkan customer.");
+            }
+
         } catch (Exception e) {
-            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid untuk Customer.");
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid.");
         }
     }
     public static void handleVouchers(HttpExchange httpExchange) throws IOException {
@@ -145,8 +160,6 @@ public class PostHandler {
                 return;
             }
 
-            int insertedId = DatabaseHelper.insertVoucher(newVoucher);
-
             sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, newVoucher);
 
         } catch (Exception e) {
@@ -155,4 +168,84 @@ public class PostHandler {
         }
     }
 
+
+
+    // Handler untuk POST customers/{id}/bookings
+    public static void handleCreateBookingForCustomer(HttpExchange httpExchange) throws IOException {
+        String path = httpExchange.getRequestURI().getPath(); // contoh: /customers/3/bookings
+        String[] parts = path.split("/");
+
+        if (parts.length >= 4) {
+            try {
+                int customerId = Integer.parseInt(parts[2]);
+                String requestBody = getRequestBody(httpExchange);
+                Booking booking = OBJECT_MAPPER.readValue(requestBody, Booking.class);
+
+                // Set customer ID dari path
+                booking.setCustomer(customerId);
+
+                int insertedId = DatabaseHelper.insertBooking(booking);
+                if (insertedId != -1) {
+                    booking.setId(insertedId);
+                    sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, booking);
+                } else {
+                    sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menyimpan booking.");
+                }
+            } catch (NumberFormatException e) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "ID customer harus angka.");
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Terjadi kesalahan.");
+            }
+        } else {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format URL salah.");
+        }
+    }
+
+    // Handler untuk POST /customers/{id}/bookings{id}/reviews
+    public static void handleCreateReviewForBooking(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani POST /customers/{id}/bookings/{id}/reviews");
+
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+
+        int customerId = Integer.parseInt(parts[2]);
+        int bookingId = Integer.parseInt(parts[4]);
+
+        try {
+            // Validasi booking milik customer
+            if (!DatabaseHelper.isBookingOwnedByCustomer(bookingId, customerId)) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_FORBIDDEN, "Booking tidak ditemukan untuk customer ini.");
+                return;
+            }
+
+            // Ambil JSON body
+            String body = getRequestBody(httpExchange);
+            Review review = OBJECT_MAPPER.readValue(body, Review.class);
+
+            // Validasi bintang
+            if (review.getStar() < 1 || review.getStar() > 5) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Nilai bintang harus antara 1 sampai 5.");
+                return;
+            }
+
+            // Validasi booking ID pada body = path
+            if (review.getBooking() != bookingId) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Booking ID pada body tidak cocok dengan URL.");
+                return;
+            }
+
+            // Simpan review
+            boolean success = DatabaseHelper.insertReview(review);
+            if (success) {
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_CREATED, review);
+            } else {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal menambahkan review. Mungkin review untuk booking ini sudah ada.");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid.");
+        }
+    }
 }

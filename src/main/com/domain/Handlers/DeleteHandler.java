@@ -124,7 +124,7 @@ public class DeleteHandler {
             int id = Integer.parseInt(parts[2]) ;
 
             try {
-                boolean deleted = DatabaseHelper.deleteVoucherByCode(id);
+                boolean deleted = DatabaseHelper.deleteVoucherById(id);
                 if (deleted) {
                     sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK,
                             Map.of("message", "Voucher berhasil dihapus."));

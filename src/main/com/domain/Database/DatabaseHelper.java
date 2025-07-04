@@ -3,7 +3,6 @@ package main.com.domain.Database;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
 import main.com.domain.Models.*;
 
 public class DatabaseHelper {
@@ -526,7 +525,7 @@ public class DatabaseHelper {
         }
         return false;
     }
-    public static boolean deleteVoucherByCode(int id) {
+    public static boolean deleteVoucherById(int id) {
         String sql = "DELETE FROM vouchers WHERE id = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -539,5 +538,116 @@ public class DatabaseHelper {
         }
         return false;
     }
+public static int insertCustomer(Customer customer) {
+        String sql = "INSERT INTO customers (name, email, phone) VALUES (?, ?, ?)";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
+            pstmt.setString(1, customer.getName());
+            pstmt.setString(2, customer.getEmail());
+            pstmt.setString(3, customer.getPhone());
+
+            int affected = pstmt.executeUpdate();
+            if (affected > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1); // ID baru
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    // POST/customers/{id}/bookings
+    public static int insertBooking(Booking booking) {
+        String sql = "INSERT INTO bookings (customer, room_type, checkin_date, checkout_date, price, voucher, final_price, payment_status, has_checkedin, has_checkedout) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+            PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setInt(1, booking.getCustomer());
+            pstmt.setInt(2, booking.getRoom_type());
+            pstmt.setString(3, booking.getCheckin_date());
+            pstmt.setString(4, booking.getCheckout_date());
+            pstmt.setInt(5, booking.getPrice());
+            pstmt.setInt(6, booking.getVoucher());
+            pstmt.setInt(7, booking.getFinal_price());
+            pstmt.setString(8, booking.getPayment_status());
+            pstmt.setInt(9, booking.isHas_checkedin() ? 1 : 0);
+            pstmt.setInt(10, booking.isHas_checkedout() ? 1 : 0);
+
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1); // ID yang baru dibuat
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1; // Gagal
+    }
+
+    // Helper untuk cek booking milik customer
+    public static boolean isBookingOwnedByCustomer(int bookingId, int customerId) {
+        String sql = "SELECT * FROM bookings WHERE id = ? AND customer = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, bookingId);
+            pstmt.setInt(2, customerId);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    // Helper untuk insert review customer
+    public static boolean insertReview(Review review) {
+        String sql = "INSERT INTO reviews (booking, star, title, content) VALUES (?, ?, ?, ?)";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, review.getBooking());
+            pstmt.setInt(2, review.getStar());
+            pstmt.setString(3, review.getTitle());
+            pstmt.setString(4, review.getContent());
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Helper untuk update customer
+    public static boolean updateCustomer(int id, Customer customer) {
+        String sql = "UPDATE customers SET name = ?, email = ?, phone = ? WHERE id = ?";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, customer.getName());
+            pstmt.setString(2, customer.getEmail());
+            pstmt.setString(3, customer.getPhone());
+            pstmt.setInt(4, id);
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean isCustomerExist(int id) {
+        String sql = "SELECT 1 FROM customers WHERE id = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

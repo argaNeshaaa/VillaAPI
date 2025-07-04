@@ -64,7 +64,6 @@ public class PutHandler {
     }
 
     // Handler untuk PUT /villas/{id}
-    // Asumsi: body request berisi data Villa yang diperbarui
     public static void handleVillaById(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani PUT /villas/{id}");
         String path = httpExchange.getRequestURI().getPath();
@@ -137,24 +136,43 @@ public class PutHandler {
     }
 
 
-    // Handler untuk PUT /customer
-    // Asumsi: body request berisi data Customer yang diperbarui
-    public static void handleCustomers(HttpExchange httpExchange) throws IOException {
-        System.out.println("Menangani PUT request untuk /customer");
-        String requestBody = getRequestBody(httpExchange);
-        try {
-            // Deserialisasi JSON ke objek Customer
-            Customer updatedCustomer = OBJECT_MAPPER.readValue(requestBody, Customer.class);
-            
-            // Logika untuk memperbarui data pelanggan di "database" atau daftar.
-            System.out.println("Data pelanggan diterima untuk diperbarui: ID " + updatedCustomer.getId() + ", Nama: " + updatedCustomer.getName());
+    // Handler untuk PUT /customer{id}
+    public static void handleUpdateCustomer(HttpExchange httpExchange) throws IOException {
+        System.out.println("Menangani PUT /customers/{id}");
 
-            // Kirim kembali objek pelanggan yang telah diperbarui atau konfirmasi
-            sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, updatedCustomer);
+        String path = httpExchange.getRequestURI().getPath();
+        String[] parts = path.split("/");
+        int id = Integer.parseInt(parts[2]);
+
+        if (!DatabaseHelper.isCustomerExist(id)) {
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_FOUND, "Customer tidak ditemukan.");
+            return;
+        }
+
+        String body = getRequestBody(httpExchange);
+        try {
+            Customer customer = OBJECT_MAPPER.readValue(body, Customer.class);
+
+            // Validasi field wajib
+            if (customer.getName() == null || customer.getEmail() == null || customer.getPhone() == null) {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Nama, email, dan nomor telepon wajib diisi.");
+                return;
+            }
+
+            boolean updated = DatabaseHelper.updateCustomer(id, customer);
+            if (updated) {
+                customer.setId(id); // Pastikan ID sesuai path
+                sendJsonResponse(httpExchange, HttpURLConnection.HTTP_OK, customer);
+            } else {
+                sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Gagal mengupdate customer.");
+            }
+
         } catch (Exception e) {
-            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid atau data Customer bermasalah.");
+            e.printStackTrace();
+            sendErrorJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_REQUEST, "Format JSON tidak valid.");
         }
     }
+
 
     public static void handleVouchers(HttpExchange httpExchange) throws IOException {
         System.out.println("Menangani PUT request untuk /voucher");

@@ -83,9 +83,15 @@ public class Server {
                     } else if (path.matches("/villas/\\d+/rooms")) {
                         PostHandler.handlePostRoomByVillaId(httpExchange);
                     } else if (path.equals("/customer")) {
-                        PostHandler.handleCustomers(httpExchange);
+                        PostHandler.handleCreateCustomer(httpExchange);
                     } else if (path.equals("/vouchers")) {
                         PostHandler.handleVouchers(httpExchange);
+                    } else if (path.equals("/customers")) {
+                        PostHandler.handleCreateCustomer(httpExchange);
+                    } else if (path.matches("/customers/\\d+/bookings/\\d+/reviews")) {
+                        PostHandler.handleCreateReviewForBooking(httpExchange);
+                    } else if (path.matches("/customers/\\d+/bookings")) {
+                        PostHandler.handleCreateBookingForCustomer(httpExchange);
                     } else {
                         sendNotFoundResponse(httpExchange, "Endpoint POST tidak ditemukan.");
                     }
@@ -96,10 +102,10 @@ public class Server {
                         PutHandler.handleVillaById(httpExchange); 
                     } else if (path.matches("/villas/\\d+/rooms/\\d+")) {
                         PutHandler.handleUpdateRoom(httpExchange);
-                    } else if (path.equals("/customer")) {
-                        PutHandler.handleCustomers(httpExchange);
                     } else if (path.matches("/vouchers/\\d+")) {
                         PutHandler.handleVoucherById(httpExchange);
+                    } else if (path.matches("/customers/\\d+")) {
+                        PutHandler.handleUpdateCustomer(httpExchange);
                     } else {
                         sendNotFoundResponse(httpExchange, "Endpoint PUT tidak ditemukan.");
                     }
@@ -110,11 +116,11 @@ public class Server {
                         DeleteHandler.handleVillaByPath(httpExchange); // DELETE /villas/{id}
                     } else if (path.matches("/villas/\\d+/rooms/\\d+")) {
                         DeleteHandler.handleDeleteRoomById(httpExchange);  
-                    }else if (path.equals("/customer")) {
+                    } else if (path.equals("/customer")) {
                         DeleteHandler.handleCustomers(httpExchange);
                     } else if (path.matches("/vouchers/\\d+")) {
                         DeleteHandler.handleDeleteVoucherById(httpExchange); // DELETE /villas/{id}
-                    } else {
+                    }else{
                         sendNotFoundResponse(httpExchange, "Endpoint DELETE tidak ditemukan.");
                     }
                     break;
@@ -173,4 +179,3 @@ public class Server {
         sendJsonResponse(httpExchange, HttpURLConnection.HTTP_NOT_IMPLEMENTED, responseMap);
     }
 }
-
