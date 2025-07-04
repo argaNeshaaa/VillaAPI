@@ -1,6 +1,6 @@
 package main.com.domain;
 
-import main.com.domain.Server.Server;
+import main.com.domain.Server.Main;
 
 public class VillaApiApplication {
      public static void main(String[] args) throws Exception {
@@ -9,6 +9,6 @@ public class VillaApiApplication {
             port = Integer.parseInt(args[0]);
         }
         System.out.printf("Listening on port: %s...\n", port);
-        new Server(port);
+        new Main(port);
     }
 }
