@@ -29,7 +29,7 @@ API_KEY_LIVE_prod_v2_xyz123ABCDEF456GHIJKL7890MNOPQRSTUV
 ```
 
 ## 🚀 Cara Menjalankan Proyek
-Dalam menjalankan proyek ini, kami digunakan postman untuk mempermudah test.
+Dalam menjalankan proyek ini, kami menggunakan postman untuk mempermudah test.
 
 ### GET
 
