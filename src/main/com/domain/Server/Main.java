@@ -19,18 +19,25 @@ import main.com.domain.Handlers.PostHandler;
 import main.com.domain.Handlers.DeleteHandler;
 import main.com.domain.Handlers.PutHandler;
 
-public class Server {
+public class Main {
     private HttpServer server;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    // --- API Key yang di-hardcode ---
+    // PENTING: Untuk aplikasi produksi, jangan pernah menyimpan API key secara hardcode.
+    // Gunakan variabel lingkungan, file konfigurasi terpisah, atau sistem manajemen rahasia.
+    private static final String API_KEY = "API_KEY_LIVE_prod_v2_xyz123ABCDEF456GHIJKL7890MNOPQRSTUV"; // Ganti dengan API key Anda
+
     private class RequestHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) {
-            Server.processHttpExchange(httpExchange);
+            Main.processHttpExchange(httpExchange);
         }
     }
 
-    public Server(int port) throws Exception {
+    public Main(int port) throws Exception {
         server = HttpServer.create(new InetSocketAddress(port), 128);
+        // Mengatur konteks root ("/") untuk ditangani oleh RequestHandler
         server.createContext("/", new RequestHandler());
         server.start();
     }
@@ -41,6 +48,19 @@ public class Server {
         String path = uri.getPath();
 
         System.out.printf("Received %s request on path: %s\n", method, path);
+
+        // --- Logika Autentikasi API Key ---
+        String providedApiKey = httpExchange.getRequestHeaders().getFirst("X-API-Key");
+
+        if (providedApiKey == null || !providedApiKey.equals(API_KEY)) {
+            try {
+                sendUnauthorizedResponse(httpExchange, "Unauthorized: Invalid or missing API Key.");
+            } catch (IOException e) {
+                System.err.println("Error sending unauthorized response: " + e.getMessage());
+            }
+            return; // Hentikan pemrosesan jika autentikasi gagal
+        }
+        // --- Akhir Logika Autentikasi ---
 
         try {
             switch (method) {
@@ -92,6 +112,8 @@ public class Server {
                         PostHandler.handleCreateReviewForBooking(httpExchange);
                     } else if (path.matches("/customers/\\d+/bookings")) {
                         PostHandler.handleCreateBookingForCustomer(httpExchange);
+                    }else if (path.matches("/customers/\\d+/bookings")) {
+                        PostHandler.handleCreateBookingForCustomer(httpExchange);
                     } else {
                         sendNotFoundResponse(httpExchange, "Endpoint POST tidak ditemukan.");
                     }
@@ -99,7 +121,7 @@ public class Server {
 
                 case "PUT":
                     if (path.matches("/villas/\\d+")) {
-                        PutHandler.handleVillaById(httpExchange); 
+                        PutHandler.handleVillaById(httpExchange);
                     } else if (path.matches("/villas/\\d+/rooms/\\d+")) {
                         PutHandler.handleUpdateRoom(httpExchange);
                     } else if (path.matches("/vouchers/\\d+")) {
@@ -115,12 +137,12 @@ public class Server {
                     if (path.matches("/villas/\\d+")) {
                         DeleteHandler.handleVillaByPath(httpExchange); // DELETE /villas/{id}
                     } else if (path.matches("/villas/\\d+/rooms/\\d+")) {
-                        DeleteHandler.handleDeleteRoomById(httpExchange);  
+                        DeleteHandler.handleDeleteRoomById(httpExchange);
                     } else if (path.equals("/customer")) {
                         DeleteHandler.handleCustomers(httpExchange);
                     } else if (path.matches("/vouchers/\\d+")) {
                         DeleteHandler.handleDeleteVoucherById(httpExchange); // DELETE /villas/{id}
-                    }else{
+                    }else {
                         sendNotFoundResponse(httpExchange, "Endpoint DELETE tidak ditemukan.");
                     }
                     break;
@@ -133,6 +155,7 @@ public class Server {
         } catch (Exception e) {
             // Tangani error umum
             System.out.println("Error processing request: " + e.getMessage());
+            e.printStackTrace(); // Cetak stack trace untuk debugging lebih lanjut
             try {
                 String resError = "{\"message\":\"Internal Server Error\"}";
                 httpExchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -144,6 +167,7 @@ public class Server {
             }
         }
     }
+
     private static void sendResponse(HttpExchange httpExchange, int statusCode, String contentType, String responseBody) throws IOException {
         httpExchange.getResponseHeaders().add("Content-Type", contentType);
         byte[] responseBytes = responseBody.getBytes("UTF-8");
@@ -170,6 +194,14 @@ public class Server {
         responseMap.put("status", "error");
         responseMap.put("message", message);
         sendJsonResponse(httpExchange, HttpURLConnection.HTTP_BAD_METHOD, responseMap);
+    }
+
+    // Metode baru untuk respons Unauthorized
+    private static void sendUnauthorizedResponse(HttpExchange httpExchange, String message) throws IOException {
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "error");
+        responseMap.put("message", message);
+        sendJsonResponse(httpExchange, HttpURLConnection.HTTP_UNAUTHORIZED, responseMap);
     }
 
     private static void sendNotImplementedResponse(HttpExchange httpExchange, String message) throws IOException {
